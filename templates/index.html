@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directory Brute Forcing</title>
+    <style>
+        body {
+            font-family: "Courier New", monospace;
+        }
+
+        /* Style for the results section to mimic terminal */
+        #results {
+            background-color: black;
+            color: white;
+            padding: 10px;
+            font-size: 14px;
+            white-space: pre-wrap; /* To preserve line breaks */
+            overflow-y: scroll; /* Enable scrolling if the content exceeds the box */
+            height: 300px; /* Adjust the height of the result box */
+            border: 1px solid #444; /* Optional: Add a border to the box */
+        }
+
+        /* Optional: Add some space for the form section */
+        form {
+            margin-bottom: 20px;
+        }
+
+        /* Make the form inputs and button visually consistent */
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Directory Brute Forcing Tool</h1>
+    <form action="/start_brute_force" method="POST" enctype="multipart/form-data">
+        <label for="url">Target URL:</label>
+        <input type="text" id="url" name="url" required><br><br>
+
+        <label for="wordlist">Wordlist:</label>
+        <input type="file" id="wordlist" name="wordlist" required><br><br>
+
+        <button type="submit">Start Brute Forcing</button>
+    </form>
+
+    <h2>Results</h2>
+    <div id="results"></div>
+
+    <script>
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const formData = new FormData(form);
+
+            fetch('/start_brute_force', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                const eventSource = new EventSource('/stream_results');
+                eventSource.onmessage = function(event) {
+                    const resultsDiv = document.getElementById('results');
+                    resultsDiv.innerHTML += event.data + "<br>";
+                };
+            });
+        });
+    </script>
+</body>
+</html>
