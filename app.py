@@ -9,8 +9,6 @@ app = Flask(__name__)
 
 threads = 5
 user_agent = "Mozilla/5.0 (X11; Linux x86_64; rv:19.0) Gecko/20100101 Firefox/19.0"
-target_url = "http://testphp.vulnweb.com"
-wordlist_file = "all.txt"  # For demo purposes, you can upload a custom wordlist via HTML form
 resume = None
 
 def build_wordlist(wordlist_file):
@@ -35,7 +33,7 @@ def build_wordlist(wordlist_file):
     return words
 
 
-def dir_bruter(word_queue, extensions=None, event_stream=None):
+def dir_bruter(target_url, word_queue, extensions=None, event_stream=None):
     while not word_queue.empty():
         attempt = word_queue.get()
         attempt_list = []
@@ -82,7 +80,7 @@ def index():
 
 @app.route('/start_brute_force', methods=['POST'])
 def start_brute_force():
-    url = request.form['url']
+    target_url = request.form['url']
     wordlist = request.files['wordlist']
     wordlist_path = 'uploads/' + wordlist.filename
     wordlist.save(wordlist_path)
@@ -90,12 +88,13 @@ def start_brute_force():
     word_queue = build_wordlist(wordlist_path)
     extensions = [".php", ".bak", ".orig", ".inc"]
 
+    global event_stream
     event_stream = queue.Queue()
 
     # Start the brute-force process in a separate thread
     def start_threads():
         for _ in range(threads):
-            t = threading.Thread(target=dir_bruter, args=(word_queue, extensions, event_stream))
+            t = threading.Thread(target=dir_bruter, args=(target_url,word_queue, extensions, event_stream))
             t.start()
 
     start_threads()
@@ -105,16 +104,6 @@ def start_brute_force():
 
 @app.route('/stream_results')
 def stream_results():
-    event_stream = queue.Queue()
-
-    def start_brute_force():
-        word_queue = build_wordlist("uploads/all.txt")  # Example wordlist path
-        extensions = [".php", ".bak", ".orig", ".inc"]
-        dir_bruter(word_queue, extensions, event_stream)
-
-    # Start the brute-force process in a separate thread for streaming
-    threading.Thread(target=start_brute_force).start()
-
     return Response(generate_sse(event_stream), content_type='text/event-stream')
 
 
